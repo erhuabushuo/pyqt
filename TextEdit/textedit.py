@@ -21,6 +21,50 @@ class TextEdit(QtGui.QMainWindow):
 		self.setupEditActions()
 		self.setupTextActions()
 
+		helpMenu = QtGui.QMenu("Help", self)
+		self.menuBar().addMenu(helpMenu)
+		helpMenu.addAction("About", self.about)
+		helpMenu.addAction("About &Qt", QtGui.qApp.aboutQt)
+
+		self.textEdit = QtGui.QTextEdit(self)
+		self.textEdit.currentCharFormatChanged.connect(
+				self.currentCharFormatChanged)
+		self.textEdit.cursorPositionChanged.connect(self.cursorPositionChanged)
+		self.setCentralWidget(self.textEdit)
+		self.textEdit.setFocus()
+		self.setCurrentFileName()
+		self.fontChanged(self.textEdit.font())
+		self.colorChanged(self.textEdit.textColor())
+		self.alignmentChanged(self.textEdit.alignment())
+		self.textEdit.document().modificationChanged.connect(
+				self.actionSave.setEnabled)
+		self.textEdit.document().modificationChanged.connect(
+				self.setWindowModifiled)
+		self.textEdit.document().undoAvailable.connect(
+				self.actionUndo.setEnabled)
+		self.textEdit.document().redoAvailable.connect(
+				self.actionRedo.setEnabled)
+		self.setWindowModifiled(self.textEdit.document().isModified())
+		self.actionSave.setEnabled(self.textEdit.document().isModified())
+		self.actionUndo.setEnabled(self.textEdit.document().isUndoAvailable())
+		self.actionRedo.setEnabled(self.textEdit.document().isRedoAvailable())
+		self.actionUndo.triggered.connect(self.textEdit.undo)
+		self.actionRedo.triggered.connect(self.textEdit.redo)
+		self.actionCut.setEnabled(False)
+		self.actionCopy.setEnabled(False)
+		self.actionCut.triggered.connect(self.textEdit.cut)
+		self.actionPaste.triggered.connect(self.textEdit.copy)
+		self.textEdit.copyAvailable.connect(self.actionCut.setEnabled)
+		self.textEdit.copyAvailable.connect(self.actionCopy.setEnabled)
+		QtGui.QApplication.clipboard().dataChanged.connect(
+				self.clipboardDataChanged)
+
+		if fileName is None:
+			fileName = ":/example.html"
+
+		if not self.load(fileName):
+			self.fileNew()
+
 	def setupFileActions(self):
 		tb = QtGui.QToolBar(self)
 		tb.setWindowTitle("File Actions")
@@ -137,7 +181,7 @@ class TextEdit(QtGui.QMainWindow):
 				QtGui.QIcon(rsrcPath + '/editpaste.png')),
 			"&Paste", self, priority=QtGui.QAction.LowPriority,
 			shortcut=QtGui.QKeySequence.Paste,
-			enabled=(len(QtGui.QAppcalition.clipboard().text()) != 0))
+			enabled=(len(QtGui.QApplication.clipboard().text()) != 0))
 		tb.addAction(self.actionPaste)
 		menu.addAction(self.actionPaste)
 
@@ -187,3 +231,115 @@ class TextEdit(QtGui.QMainWindow):
 
 		menu.addSeparator()
 		
+		grp = QtGui.QActionGroup(self, triggered=self.textAlign)
+
+		# Make sure the alignLeft is always left of the aligRight.
+		if QtGui.QApplication.isLeftToRight():
+			self.actionAlignLeft = QtGui.QAction(
+				QtGui.QIcon.fromTheme('format-justify-left',
+					QtGui.QIcon(rsrcPath + '/textleft.png')),
+				"&Left", grp)
+			self.actionAlignCenter = QtGui.QAction(
+				QtGui.QIcon.fromTheme('format-justify-center',
+					QtGui.QIcon(rsrcPath + '/textcenter.png')),
+				"C&enter", grp)
+			self.actionAlignRight = QtGui.QAction(
+				QtGui.QIcon.fromTheme('format-justify-right',
+					QtGui.QIcon(rsrcPath + '/textright.png')),
+				"&Right", grp)
+		else:
+			self.actionAlignRight = QtGui.QAction(
+				QtGui.QIcon.fromTheme('format-justify-right',
+					QtGui.QIcon(rsrcPath + '/textright.png')),
+				"&Right", grp)
+			self.actionAlignCenter = QtGui.QAction(
+				QtGui.QIcon.fromTheme('format-justify-center',
+					QtGui.QIcon(rsrcPath + '/textcenter.png')),
+				"C&enter", grp)
+			self.actionAlignLeft = QtGui.QAction(
+				QtGui.QIcon.fromTheme('format-justify-left',
+					QtGui.QIcon(rsrcPath + '/textleft.png')),
+				"&Left", grp)
+
+		self.actionAlignJustify = QtGui.QAction(
+			QtGui.QIcon.fromTheme('format-justify-fill',
+				QtGui.QIcon(rsrcPath + '/textjusify.png')),
+			"&Justify", grp)
+
+		self.actionAlignLeft.setShortcut(QtCore.Qt.CTRL + QtCore.Qt.QKey_L)
+		self.actionAlignLeft.setCheckable(True)
+		self.actionAlignLeft.setPrioprity(QtGui.QAction.LowPriority)
+
+		self.actionAlignCenter.setShortcut(QtCore.Qt.CTRL + QtCore.Qt.QKey_E)
+		self.actionAlignCenter.setCheckable(True)
+		self.actionAlignCenter.setPrioprity(QtGui.QAction.LowPriority)
+
+		self.actionAlignRight.setShortcut(QtCore.Qt.CTRL + QtCore.Qt.QKey_R)
+		self.actionAlignRight.setCheckable(True)
+		self.actionAlignRight.setPrioprity(QtGui.QAction.LowPriority)
+
+		self.actionAlignJustify.setShortcut(QtCore.Qt.CTRL + QtCore.Qt.QKey_J)
+		self.actionAlignJustify.setCheckable(True)
+		self.actionAlignJustify.setPrioprity(QtGui.QAction.LowPriority)
+
+		tb.addActions(grp.actions())
+		menu.addActions(grp.actions())
+		menu.addSeparator()
+
+		pix = QtGui.QPixmap(16, 16)
+		pix.fill(QtCore.Qt.black)
+		self.actionTextColor = QtGui.QAction(QtGui.QIcon(pix), "&Color...",
+				self, triggered=self.textColor)
+		tb.addAction(self.actionTextColor)
+		menu.addAction(self.actionTextColor)
+
+		tb = QtGui.QToolBar(self)
+		tb.setAllowedAreas(
+				QtCore.Qt.TopToolBarArea | QtCore.Qt.BottomToolBarArea)
+		tb.setWindowTitle("Format Actions")
+		self.addToolBarBreak(QtCore.Qt.TopToolBarArea)
+		self.addToolBar(tb)
+
+		comboStyle = QtGui.QComboBox(tb)
+		tb.addWidget(comboStyle)
+		comboStyle.addItem("Standard")
+		comboStyle.addItem("Bullet List (Disc)")
+		comboStyle.addItem("Bullet List (Circle)")
+		comboStyle.addItem("Bullet List (Square)")
+		comboStyle.addItem("Bullet List (Decimal)")
+		comboStyle.addItem("Bullet List (Alpha lower)")
+		comboStyle.addItem("Bullet List (Alpha uppper)")
+		comboStyle.addItem("Bullet List (Roman lower)")
+		comboStyle.addItem("Bullet List (Roman uppper)")
+		comboStyle.activated.connect(self.textStyle)
+
+		self.comboFont = QtGui.QFontComboBox(tb)
+		tbb.addWidget(self.comboFont)
+		self.comboFont.activated[str].connect(self.textFamily)
+
+		self.comboSize = QtGui.QComboBox(tb)
+		self.comboSize.setObjectName("comboSize")
+		tb.addWidget(self.comboSize)
+		self.comboSize.setEditable(True)
+
+		db = QtGui.QFontDatabase()
+		for size in db.standradSizes():
+			self.comboSize.addItem("%s" % (size))
+
+		self.comboSize.activated[str].connect(self.textSize)
+		self.comboSize.setCurrentIndex(
+			self.comboSize.findText(
+				"%s" % (QtGui.QApplication.font().pointSize())))
+
+
+	def setCurrentFileName(self, fileName=''):
+		self.fileName = fileName
+		self.textEdit.document().setModified(False)
+
+		if not fileName:
+			shownName = 'untitled.txt'
+		else:
+			shownName = QtCore.QFileInfo(fileName).fileName()
+
+		self.setWindowTitle("%s[*] - %s" % (shownName, "Rich Text"))
+		self.setWindowModifiled(False)
