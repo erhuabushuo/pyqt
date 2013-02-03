@@ -394,7 +394,7 @@ class TextEdit(QtGui.QMainWindow):
 
 	def fileNew(self):
 		if self.maybeSave():
-			self.textEdit().clear()
+			self.textEdit.clear()
 			self.setCurrentFileName()
 
 	def fileOpen(self):
@@ -409,7 +409,7 @@ class TextEdit(QtGui.QMainWindow):
 			return self.fileSaveAs()
 
 		writer = QtGui.QTextDocumentWriter(self.fileName)
-		success = writer.writer(self.textEdit.document)
+		success = writer.write(self.textEdit.document)
 		if success:
 			self.textEdit.document().setModified(False)
 
