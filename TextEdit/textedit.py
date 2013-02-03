@@ -39,12 +39,12 @@ class TextEdit(QtGui.QMainWindow):
 		self.textEdit.document().modificationChanged.connect(
 				self.actionSave.setEnabled)
 		self.textEdit.document().modificationChanged.connect(
-				self.setWindowModifiled)
+				self.setWindowModified)
 		self.textEdit.document().undoAvailable.connect(
 				self.actionUndo.setEnabled)
 		self.textEdit.document().redoAvailable.connect(
 				self.actionRedo.setEnabled)
-		self.setWindowModifiled(self.textEdit.document().isModified())
+		self.setWindowModified(self.textEdit.document().isModified())
 		self.actionSave.setEnabled(self.textEdit.document().isModified())
 		self.actionUndo.setEnabled(self.textEdit.document().isUndoAvailable())
 		self.actionRedo.setEnabled(self.textEdit.document().isRedoAvailable())
@@ -65,6 +65,12 @@ class TextEdit(QtGui.QMainWindow):
 		if not self.load(fileName):
 			self.fileNew()
 
+	def closeEvent(self, e):
+		if self.maybeSave():
+			e.accept()
+		else:
+			e.ignore()
+
 	def setupFileActions(self):
 		tb = QtGui.QToolBar(self)
 		tb.setWindowTitle("File Actions")
@@ -82,7 +88,7 @@ class TextEdit(QtGui.QMainWindow):
 		menu.addAction(self.actionNew)
 
 		self.actionOpen = QtGui.QAction(
-			QtGui.QIon.fromTheme("document-open",
+			QtGui.QIcon.fromTheme("document-open",
 					QtGui.QIcon(rsrcPath + "/fileopen.png")),
 			"&Open...", self, shortcut=QtGui.QKeySequence.Open,
 			triggered=self.fileOpen)
@@ -106,7 +112,7 @@ class TextEdit(QtGui.QMainWindow):
 		menu.addSeparator()
 
 		self.actionPrint = QtGui.QAction(
-			QtGui.QIcon('document-print',
+			QtGui.QIcon.fromTheme('document-print',
 				QtGui.QIcon(rsrcPath + '/fileprint.png')),
 			"&Print...", self, priority=QtGui.QAction.LowPriority,
 			shortcut=QtGui.QKeySequence.Print, triggered=self.filePrint)
@@ -171,7 +177,7 @@ class TextEdit(QtGui.QMainWindow):
 		self.actionCopy = QtGui.QAction(
 			QtGui.QIcon.fromTheme('edit-copy',
 				QtGui.QIcon(rsrcPath + 'editcopy.png')),
-			"&Copy", self, priority=QtGui.QIcon.LowPriority,
+			"&Copy", self, priority=QtGui.QAction.LowPriority,
 			shortcut=QtGui.QKeySequence.Copy)
 		tb.addAction(self.actionCopy)
 		menu.addAction(self.actionCopy)
@@ -210,7 +216,7 @@ class TextEdit(QtGui.QMainWindow):
 				QtGui.QIcon(rsrcPath + '/textitalic.png')),
 			"&Italic", self, priority=QtGui.QAction.LowPriority,
 			shortcut=QtCore.Qt.CTRL + QtCore.Qt.Key_I,
-			triggered=self.textitalic, checkable=True)
+			triggered=self.textItalic, checkable=True)
 		italic = QtGui.QFont()
 		italic.setItalic(True)
 		self.actionTextItalic.setFont(italic)
@@ -223,7 +229,7 @@ class TextEdit(QtGui.QMainWindow):
 			"&Underline", self, priority=QtGui.QAction.LowPriority,
 			shortcut=QtCore.Qt.CTRL + QtCore.Qt.Key_U,
 			triggered=self.textUnderline, checkable=True)
-		underline = QtGui.Font()
+		underline = QtGui.QFont()
 		underline.setUnderline(True)
 		self.actionTextUnderline.setFont(underline)
 		tb.addAction(self.actionTextUnderline)
@@ -266,21 +272,21 @@ class TextEdit(QtGui.QMainWindow):
 				QtGui.QIcon(rsrcPath + '/textjusify.png')),
 			"&Justify", grp)
 
-		self.actionAlignLeft.setShortcut(QtCore.Qt.CTRL + QtCore.Qt.QKey_L)
+		self.actionAlignLeft.setShortcut(QtCore.Qt.CTRL + QtCore.Qt.Key_L)
 		self.actionAlignLeft.setCheckable(True)
-		self.actionAlignLeft.setPrioprity(QtGui.QAction.LowPriority)
+		self.actionAlignLeft.setPriority(QtGui.QAction.LowPriority)
 
-		self.actionAlignCenter.setShortcut(QtCore.Qt.CTRL + QtCore.Qt.QKey_E)
+		self.actionAlignCenter.setShortcut(QtCore.Qt.CTRL + QtCore.Qt.Key_E)
 		self.actionAlignCenter.setCheckable(True)
-		self.actionAlignCenter.setPrioprity(QtGui.QAction.LowPriority)
+		self.actionAlignCenter.setPriority(QtGui.QAction.LowPriority)
 
-		self.actionAlignRight.setShortcut(QtCore.Qt.CTRL + QtCore.Qt.QKey_R)
+		self.actionAlignRight.setShortcut(QtCore.Qt.CTRL + QtCore.Qt.Key_R)
 		self.actionAlignRight.setCheckable(True)
-		self.actionAlignRight.setPrioprity(QtGui.QAction.LowPriority)
+		self.actionAlignRight.setPriority(QtGui.QAction.LowPriority)
 
-		self.actionAlignJustify.setShortcut(QtCore.Qt.CTRL + QtCore.Qt.QKey_J)
+		self.actionAlignJustify.setShortcut(QtCore.Qt.CTRL + QtCore.Qt.Key_J)
 		self.actionAlignJustify.setCheckable(True)
-		self.actionAlignJustify.setPrioprity(QtGui.QAction.LowPriority)
+		self.actionAlignJustify.setPriority(QtGui.QAction.LowPriority)
 
 		tb.addActions(grp.actions())
 		menu.addActions(grp.actions())
@@ -314,7 +320,7 @@ class TextEdit(QtGui.QMainWindow):
 		comboStyle.activated.connect(self.textStyle)
 
 		self.comboFont = QtGui.QFontComboBox(tb)
-		tbb.addWidget(self.comboFont)
+		tb.addWidget(self.comboFont)
 		self.comboFont.activated[str].connect(self.textFamily)
 
 		self.comboSize = QtGui.QComboBox(tb)
@@ -323,13 +329,55 @@ class TextEdit(QtGui.QMainWindow):
 		self.comboSize.setEditable(True)
 
 		db = QtGui.QFontDatabase()
-		for size in db.standradSizes():
+		for size in db.standardSizes():
 			self.comboSize.addItem("%s" % (size))
 
 		self.comboSize.activated[str].connect(self.textSize)
 		self.comboSize.setCurrentIndex(
 			self.comboSize.findText(
 				"%s" % (QtGui.QApplication.font().pointSize())))
+
+	def load(self, f):
+		if not QtCore.QFile.exists(f):
+			return False
+
+		fh = QtCore.QFile(f)
+		if not fh.open(QtCore.QFile.ReadOnly):
+			return False
+
+		data = fh.readAll()
+		codec = QtCore.QTextCodec.codecForHtml(data)
+		unistr = codec.toUnicode(data)
+
+		if QtCore.Qt.mightBeRichText(unistr):
+			self.textEdit.setHtml(unistr)
+		else:
+			self.textEdit.setPlainText(unistr)
+
+		self.setCurrentFileName(f)
+		return True
+
+	def maybeSave(self):
+		if not self.textEdit.document().isModified():
+			return True
+
+		if self.fileName.startswith(':/'):
+			return True
+
+		ret = QtGui.QMessageBox.warning(self, "Application",
+				"The document has been modified.\n"
+				"Do you want to save your changes?",
+				QtGui.QMessageBox.Save | QtGui.QMessageBox.Discard |
+					QtGui.QMessageBox.Cancel)
+
+		if ret == QtGui.QMessageBox.Save:
+			return self.fileSave()
+
+		if ret == QtGui.QMessageBox.Cancel:
+			return False
+
+		return True
+
 
 
 	def setCurrentFileName(self, fileName=''):
@@ -342,4 +390,220 @@ class TextEdit(QtGui.QMainWindow):
 			shownName = QtCore.QFileInfo(fileName).fileName()
 
 		self.setWindowTitle("%s[*] - %s" % (shownName, "Rich Text"))
-		self.setWindowModifiled(False)
+		self.setWindowModified(False)
+
+	def fileNew(self):
+		if self.maybeSave():
+			self.textEdit().clear()
+			self.setCurrentFileName()
+
+	def fileOpen(self):
+		fn = QtGui.QFileDialog.getOpenFileName(self, "Open File...", None,
+				"HTML-Files (*.htm *.html);;All Files (*)")
+
+		if fn:
+			self.load(fn)
+
+	def fileSave(self):
+		if not self.fileName:
+			return self.fileSaveAs()
+
+		writer = QtGui.QTextDocumentWriter(self.fileName)
+		success = writer.writer(self.textEdit.document)
+		if success:
+			self.textEdit.document().setModified(False)
+
+	def fileSaveAs(self):
+		fn = QtGui.QFileDialog.getSaveFileName(self, "Save as...", None,
+				"ODF files (*.odt);;;HTML-Files (*.htm *.html);;All Files (*)")
+
+		if not fn:
+			return False
+
+		lfn = fn.lower()
+		if not lfn.endswith(('.odt', '.html', '.html')):
+			# The default.
+			fn += ".odt"
+
+		self.setCurrentFileName(fn)
+		return self.fileSave()
+
+	def filePrint(self):
+		printer = QtGui.QPrinter(QtGui.QPrinter.HighResolution)
+		dlg = QtGui.QPrintDialog(printer, self)
+
+		if self.textEdit.textCursor().hasSelection():
+			dlg.addEnabledOption(QtGui.AbstractPrintDialog.PrintSelection)
+
+		dlg.setWindowTitle("Print Document")
+
+		if dlg.exec_() == QtGui.QDialog.Accepted:
+			self.textEdit.print_(printer)
+
+		del dlg
+
+	def filePrintPreview(self):
+		printer = QtGui.QPrinter(QtGui.QPrinter.HighResolution)
+		preview = QtGui.QPrintPreviewDialog(printer, self)
+		preview.paintRequested.connect(self.printPreview)
+		preview.exec_()
+
+	def printPreview(self, printer):
+		self.textEdit.print_(printer)
+
+	def filePrintPdf(self):
+		fileName = QtGui.QFileDialog.getSaveFileName(self, "Export PDF", None,
+				"PDF files (*.pdf);;All Files (*)")
+
+		if fileName:
+			if QtCore.QFileInfo(fileName).suffix() == '':
+				fileName += ".pdf"
+
+			printer = QtGui.QPrinter(QtGui.QPrinter.HighResolution)
+			printer.setOutputFormat(QtGui.QPrinter.PdfFormat)
+			printer.setOutputFileName(fileName)
+			self.textEdit.document().print_(printer)
+
+	def textBold(self):
+		fmt = QtGui.QTextCharFormat()
+		fmt.setFontWeight(self.actionTextBold.isChecked() and QtGui.QFont.Bold or QtGui.QFont.Normal)
+		self.mergeFormatOnWordOrSelection(fmt)
+
+	def textUnderline(self):
+		fmt = QtGui.QTextCharFormat()
+		fmt.setFontUnderline(self.actionTextUnderline.isChecked())
+		self.mergeFormatOnWordOrSelection(fmt)
+
+	def textItalic(self):
+		fmt = QtGui.QTextCharFormat()
+		fmt.setFontItalic(self.actionTextItalic.isChecked())
+		self.mergeFormatOnWordOrSelection(fmt)
+
+	def textFamily(self, family):
+		fmt = QtGui.QTextCharFormat()
+		fmt.setFontFamily(family)
+		self.mergeFormatOnWordOrSelection(fmt)
+
+	def textSize(self, pointSize):
+		pointSize = float(pointSize)
+		if pointSize > 0:
+			fmt = QtGui.QTextCharFormat()
+			fmt.setFontPointSize(pointSize)
+			self.mergeFormatOnWordOrSelection(fmt)
+
+	def textStyle(self, styleIndex):
+		cursor = self.textEdit.textCursor()
+		if styleIndex:
+			styleDict = {
+				1: QtGui.QTextListFormat.ListDisc,
+				2: QtGui.QTextListFormat.ListCircle,
+				3: QtGui.QTextListFormat.ListSquare,
+				4: QtGui.QTextListFormat.ListDecimal,
+				5: QtGui.QTextListFormat.ListLowerAlpha,
+				6: QtGui.QTextListFormat.ListUpperAlpha,
+				7: QtGui.QTextListFormat.ListLowerRoman,
+				8: QtGui.QTextListFormat.ListUpperRoman,
+			}
+
+			style = styleDict.get(styleIndex, QtGui.QTextListFormat.ListDisc)
+			cursor.beginEditBlock()
+			blockFmt = cursor.blockFormat()
+			listFmt = QtGui.QTextListFormat()
+
+			if cursor.currentList():
+				listFmt = cursor.currentList().format()
+			else:
+				listFmt = setIndent(blockFmt.indent() + 1)
+				blockFmt.setIndent(0)
+				cursor.setBlockFormat(blockFmt)
+
+			listFmt.setStyle(style)
+			cursor.createList(listFmt)
+			cursor.endEditBlock()
+		else:
+			bfmt = QtGui.QTextBlockFormat()
+			bfmt.setObjectIndex(-1)
+			cursor.mergeBlockFormat(bfmt)
+
+	def textColor(self):
+		col = QtGui.QColorDialog.getColor(self.textEdit.textColor(), self)
+		if not col.isValid():
+			return
+
+		fmt = QtGui.QTextCharFormat()
+		fmt.setForeground(col)
+		self.mergeFormatOnWordOrSelection(fmt)
+		self.colorChanged(col)
+
+	def textAlign(self, action):
+		if action == self.actionAlignLeft:
+			self.textEdit.setAlignment(
+					QtCore.Qt.AlignLeft | QtCore.Qt.AlignAbsolute)
+		elif action == self.actionAlignCenter:
+			self.textEdit.setAlignment(QtCore.Qt.AlignHCenter)
+		elif action == self.actionAlignRight:
+			self.textEdit.setAlignment(
+					QtCore.Qt.AlignRight | QtCore.Qt.AlignAbsolute)
+		elif action == self.actionAglinJustify:
+			self.textEdit.setAlignment(QtCore.Qt.AlignJustify)
+
+	def currentCharFormatChanged(self, format):
+		self.fontChanged(format.font())
+		self.colorChanged(format.foreground().color())
+
+	def cursorPositionChanged(self):
+		self.alignmentChanged(self.textEdit.alignment())
+
+	def clipboardDataChanged(self):
+		self.actionPaste.setEnabled(
+				len(QtGui.QApplication.clipboard().text()) != 0)
+
+	def about(self):
+		QtGui.QMessageBox.about(self, "About",
+				"This example demonstrates Qt's rich text editing facilities "
+				"in action, providing an example document for you to "
+				"experiment with.")
+
+	def mergeFormatOnWordOrSelection(self, format):
+		cursor = self.textEdit.textCursor()
+		if not cursor.hasSelection:
+			cursor.select(QtGui.QTextCursor.WordUnderCursor)
+
+		cursor.mergeCharFormat(format)
+		self.textEdit.mergeCurrentCharFormat(format)
+
+	def fontChanged(self, font):
+		self.comboFont.setCurrentIndex(
+				self.comboFont.findText(QtGui.QFontInfo(font).family()))
+		self.comboSize.setCurrentIndex(
+				self.comboSize.findText("%s" % font.pointSize()))
+		self.actionTextBold.setChecked(font.bold())
+		self.actionTextItalic.setChecked(font.italic())
+		self.actionTextUnderline.setChecked(font.underline())
+
+	def colorChanged(self, color):
+		pix = QtGui.QPixmap(16, 16)
+		pix.fill(color)
+		self.actionTextColor.setIcon(QtGui.QIcon(pix))
+
+	def alignmentChanged(self, alignment):
+		if alignment & QtCore.Qt.AlignLeft:
+			self.actionAlignLeft.setChecked(True)
+		elif alignment & QtCore.Qt.AlignHCenter:
+			self.actionAlignCenter.setChecked(True)
+		elif alignment & QtCore.Qt.AlignRight:
+			self.actionAlignRight.setChecked(True)
+		elif alignment & QtCore.Qt.AlignJustify:
+			self.actionAlignJustify.setChecked(True)
+
+if __name__ == "__main__":
+	app = QtGui.QApplication(sys.argv)
+
+	mainWindows = []
+	for fn in sys.argv[1:] or [None]:
+		textEdit = TextEdit(fn)
+		textEdit.resize(700, 800)
+		textEdit.show()
+		mainWindows.append(textEdit)
+
+	sys.exit(app.exec_())
