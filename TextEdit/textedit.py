@@ -176,7 +176,7 @@ class TextEdit(QtGui.QMainWindow):
 
 		self.actionCopy = QtGui.QAction(
 			QtGui.QIcon.fromTheme('edit-copy',
-				QtGui.QIcon(rsrcPath + 'editcopy.png')),
+				QtGui.QIcon(rsrcPath + '/editcopy.png')),
 			"&Copy", self, priority=QtGui.QAction.LowPriority,
 			shortcut=QtGui.QKeySequence.Copy)
 		tb.addAction(self.actionCopy)
